@@ -1,0 +1,11 @@
+# Top 10 most downloaded crates on crates.io (as of June 2026)
+syn
+hashbrown
+getrandom
+bitflags
+rand_core
+rand
+libc
+proc-macro2
+quote
+base64
