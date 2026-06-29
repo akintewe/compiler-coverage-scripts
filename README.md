@@ -28,14 +28,16 @@ Example:
 ### build_crate_coverage.sh
 
 Builds a single crate with the instrumented rustc and generates a coverage JSON.
+The crate directory must already exist — you can find crate sources in
+~/.cargo/registry/src/ after cargo has downloaded them.
 
     ./build_crate_coverage.sh <crate-dir> <output-dir>
 
 Example:
 
     ./build_crate_coverage.sh \
-      ~/crate-coverage/either-test \
-      ~/crate-coverage/either-out
+      ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/syn-2.0.118 \
+      ~/crate-coverage/syn-out
 
 ### diff_coverage.py
 
@@ -46,12 +48,13 @@ Compares two coverage JSONs and prints functions hit by the first but not the se
 Example:
 
     python3 diff_coverage.py \
-      ~/crate-coverage/either-out/coverage.json \
+      ~/crate-coverage/syn-out/coverage.json \
       /var/tmp/jackh726_akintewe_codecoverage/compiler_ui_coverage/coverage.json
 
 ### build_top10_coverage.sh
 
-Builds the top 10 most downloaded crates from crates.io and generates coverage JSONs.
+Builds the top 10 most downloaded crates from crates.io using their source from
+~/.cargo/registry/src/ and generates coverage JSONs for each.
 Outputs go to /var/tmp/jackh726_akintewe_codecoverage/top10_crates/<crate-name>/
 
     ./build_top10_coverage.sh
