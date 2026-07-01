@@ -1,7 +1,6 @@
 #!/bin/bash
 # Builds a batch of crates with the instrumented rustc and generates coverage JSON for each.
 # Usage: ./build_crates_batch.sh <output-subfolder> <crate1> <crate2> ...
-# Example: ./build_crates_batch.sh outside_top10 serde serde_derive regex-syntax
 
 set -e
 
@@ -15,22 +14,25 @@ STAGE1=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1/bin/rustc
 LLVM_PROFDATA=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-profdata
 LLVM_COV=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-cov
 DRIVER=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1-rustc/aarch64-unknown-linux-gnu/release/deps/librustc_driver-10d726a819bd0aa8.so
+WORKDIR=/home/gh-akintewe/crate-coverage/uncommon
+
+mkdir -p $WORKDIR
 
 for CRATE in $CRATES; do
     echo "=== $CRATE ==="
 
-    # download the crate if not already cached
-    mkdir -p /tmp/fetch-$CRATE && cd /tmp/fetch-$CRATE
-    if [ ! -f Cargo.toml ]; then
-        cargo init --name fetch_${CRATE//-/_} > /dev/null 2>&1
-        cargo add $CRATE > /dev/null 2>&1 || { echo "  failed to add $CRATE, skipping"; continue; }
-    fi
-
-    CRATE_DIR=$(ls -d $REGISTRY/${CRATE}-* 2>/dev/null | sort -V | tail -1)
-    if [ -z "$CRATE_DIR" ]; then
+    CRATE_SRC=$(ls -d $REGISTRY/${CRATE}-* 2>/dev/null | sort -V | tail -1)
+    if [ -z "$CRATE_SRC" ]; then
         echo "  skipping $CRATE: not found in registry cache"
         continue
     fi
+
+    # copy to writable location
+    CRATE_DIR=$WORKDIR/$CRATE
+    rm -rf $CRATE_DIR
+    cp -r $CRATE_SRC $CRATE_DIR
+    chmod -R u+w $CRATE_DIR
+
     echo "  using $CRATE_DIR"
 
     OUT_DIR=$OUTPUT_BASE/$CRATE
@@ -43,6 +45,8 @@ for CRATE in $CRATES; do
 
     LLVM_PROFILE_FILE=$OUT_DIR/profraws/default_%m_%p.profraw \
     RUSTC=$STAGE1 cargo test --no-run 2>&1 || true
+
+    ls $OUT_DIR/profraws/*.profraw > /dev/null 2>&1 || { echo "  WARNING: no profraws written for $CRATE"; continue; }
 
     $LLVM_PROFDATA merge --sparse -o $OUT_DIR/crate.profdata $OUT_DIR/profraws/*.profraw
 
