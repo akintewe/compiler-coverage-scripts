@@ -1,12 +1,6 @@
 #!/bin/bash
 # Minimization pipeline for a compiler coverage gap.
 # Usage: ./minimize_gap.sh <crate-dir> <function-file> <function-line> <panic-message>
-#
-# Example:
-#   ./minimize_gap.sh ~/.cargo/registry/src/.../log-0.4.22 \
-#     compiler/rustc_codegen_llvm/src/debuginfo/metadata.rs \
-#     699 \
-#     "coverage check: build_cpp_f16_di_node"
 
 set -e
 
@@ -21,20 +15,19 @@ CRATE_NAME=$(basename $CRATE_DIR)
 
 echo "=== Minimization pipeline for gap in $CRATE_NAME ==="
 echo "Target: $FUNCTION_FILE:$FUNCTION_LINE"
-echo "Panic message: $PANIC_MSG"
 
-# Step 1: add panic to the function
+# Step 1: add panic with allow attributes to the function body
 TARGET_FILE=$RUST_SRC/$FUNCTION_FILE
 PANIC_LINE=$((FUNCTION_LINE + 1))
 echo "Adding panic to $TARGET_FILE line $PANIC_LINE..."
-sed -i "${PANIC_LINE}i\\    #[allow(unreachable_code)] let _ = (); panic!(\"${PANIC_MSG}\");" $TARGET_FILE
+sed -i "${PANIC_LINE}i\\    #[allow(unreachable_code, unused_variables)] { panic!(\"${PANIC_MSG}\"); }" $TARGET_FILE
 
 # Step 2: rebuild stage1
 echo "Rebuilding stage1..."
 cd $RUST_SRC
 python3 x.py build --stage 1 2>&1 | tail -5
 
-# Step 3: verify panic fires on crate, not on test suite
+# Step 3: verify panic fires on crate
 echo "Verifying panic fires on crate..."
 CRATE_COPY=$WORKDIR/${CRATE_NAME}_minimize
 rm -rf $CRATE_COPY
@@ -46,24 +39,24 @@ RESULT=$(RUSTC=$STAGE1 cargo build 2>&1)
 if echo "$RESULT" | grep -q "$PANIC_MSG"; then
     echo "  GOOD: panic fires on crate"
 else
-    echo "  ERROR: panic does not fire on crate -- wrong function or line number"
-    # restore the file
+    echo "  ERROR: panic does not fire on crate"
     cd $RUST_SRC && git checkout $FUNCTION_FILE
     exit 1
 fi
 
-echo "Verifying panic does NOT fire on test suite subset..."
+# Step 4: verify panic does NOT fire on test suite
+echo "Verifying panic does NOT fire on test suite..."
 cd $RUST_SRC
-SUITE_RESULT=$(python3 x.py test tests/ui/abi --stage 1 2>&1 | tail -5)
+SUITE_RESULT=$(python3 x.py test tests/ui/abi --stage 1 2>&1)
 if echo "$SUITE_RESULT" | grep -q "$PANIC_MSG"; then
-    echo "  WARNING: panic fires in test suite -- function is already covered"
+    echo "  WARNING: panic fires in test suite -- not a real gap"
     git checkout $FUNCTION_FILE
     exit 1
 else
     echo "  GOOD: panic does not fire in test suite"
 fi
 
-# Step 4: run cargo-minimize
+# Step 5: run cargo-minimize
 echo "Running cargo-minimize..."
 cd $CRATE_COPY
 RUSTC=$STAGE1 cargo minimize \
@@ -72,7 +65,7 @@ RUSTC=$STAGE1 cargo minimize \
 
 echo "=== Done. Minimized code is in $CRATE_COPY/src/ ==="
 
-# Step 5: restore compiler
+# Step 6: restore compiler
 echo "Restoring compiler..."
 cd $RUST_SRC && git checkout $FUNCTION_FILE
 echo "Done."
