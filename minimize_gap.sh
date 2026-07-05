@@ -16,11 +16,13 @@ CRATE_NAME=$(basename $CRATE_DIR)
 echo "=== Minimization pipeline for gap in $CRATE_NAME ==="
 echo "Target: $FUNCTION_FILE:$FUNCTION_LINE"
 
-# Step 1: add panic with allow attributes to the function body
+# Step 1: add allow attribute before the function and panic as first statement
 TARGET_FILE=$RUST_SRC/$FUNCTION_FILE
+ALLOW_LINE=$FUNCTION_LINE
 PANIC_LINE=$((FUNCTION_LINE + 1))
-echo "Adding panic to $TARGET_FILE line $PANIC_LINE..."
-sed -i "${PANIC_LINE}i\\    #[allow(unreachable_code, unused_variables)] { panic!(\"${PANIC_MSG}\"); }" $TARGET_FILE
+echo "Adding panic to $TARGET_FILE..."
+sed -i "${ALLOW_LINE}i\\#[allow(unreachable_code, unused_variables)]" $TARGET_FILE
+sed -i "${PANIC_LINE}a\\    panic!(\"${PANIC_MSG}\");" $TARGET_FILE
 
 # Step 2: rebuild stage1
 echo "Rebuilding stage1..."
