@@ -36,12 +36,11 @@ rm -rf $CRATE_COPY
 cp -r $CRATE_DIR $CRATE_COPY
 chmod -R u+w $CRATE_COPY
 
-echo "Stripping doc comments..."
-find $CRATE_COPY/src -name "*.rs" -exec sed -i '/^#!\[doc/d; s|///.*||g' {} \;
-
 echo "Verifying panic fires on crate..."
 cd $CRATE_COPY
+set +e
 RESULT=$(RUSTC=$STAGE1 cargo build 2>&1)
+set -e
 if echo "$RESULT" | grep -q "$PANIC_MSG"; then
     echo "  GOOD: panic fires on crate"
 else
@@ -51,7 +50,9 @@ fi
 
 echo "Verifying panic does NOT fire on test suite..."
 cd $RUST_SRC
+set +e
 SUITE_RESULT=$(python3 x.py test tests/ui/abi tests/ui/traits tests/ui/generics --stage 1 2>&1)
+set -e
 if echo "$SUITE_RESULT" | grep -q "$PANIC_MSG"; then
     echo "  WARNING: panic fires in test suite -- not a real gap"
     exit 1
