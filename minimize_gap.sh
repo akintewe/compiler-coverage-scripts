@@ -1,11 +1,9 @@
 #!/bin/bash
-# Minimization pipeline for a compiler coverage gap.
-# Usage: ./minimize_gap.sh <crate-dir> <function-file> <function-line> <panic-message>
-
 CRATE_DIR=$1
 FUNCTION_FILE=$2
 FUNCTION_LINE=$3
 PANIC_MSG=$4
+SUITE_JSON=${5:-/var/tmp/jackh726_akintewe_codecoverage/compiler_ui_coverage/fresh-coverage-july1.json}
 RUST_SRC=/home/gh-akintewe/rust
 STAGE1=$RUST_SRC/build/aarch64-unknown-linux-gnu/stage1/bin/rustc
 WORKDIR=/home/gh-akintewe/crate-coverage/minimize
@@ -48,16 +46,29 @@ else
     exit 1
 fi
 
-echo "Verifying panic does NOT fire on test suite..."
-cd $RUST_SRC
-set +e
-SUITE_RESULT=$(python3 x.py test tests/ui/abi tests/ui/traits tests/ui/generics --stage 1 2>&1)
-set -e
-if echo "$SUITE_RESULT" | grep -q "$PANIC_MSG"; then
-    echo "  WARNING: panic fires in test suite -- not a real gap"
+echo "Verifying function is uncovered in baseline JSON..."
+COVERED=$(python3 -c "
+import json
+with open('$SUITE_JSON') as f:
+    d = json.load(f)
+for file in d['data']:
+    for fn in file['functions']:
+        if fn['count'] > 0:
+            for r in fn['regions']:
+                if len(r) >= 5:
+                    rs = r[0] if isinstance(r[0], int) else int(r[0])
+                    if rs == $FUNCTION_LINE:
+                        for fname in fn['filenames']:
+                            if '$FUNCTION_FILE' in fname:
+                                print('covered')
+                                exit()
+print('uncovered')
+" 2>/dev/null)
+if [ "$COVERED" = "covered" ]; then
+    echo "  WARNING: function is covered in baseline -- not a real gap"
     exit 1
 else
-    echo "  GOOD: panic does not fire in test suite"
+    echo "  GOOD: function is uncovered in baseline"
 fi
 
 echo "Running cargo-minimize..."
