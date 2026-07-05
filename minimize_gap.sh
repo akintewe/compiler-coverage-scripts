@@ -59,7 +59,7 @@ fi
 echo "Running cargo-minimize..."
 cd $CRATE_COPY
 RUSTC=$STAGE1 cargo minimize \
-    --verify-fn="|output| output.contains(\"$PANIC_MSG\")" \
+    --verify-fn="|output| output.out.contains(\"$PANIC_MSG\")" \
     --cargo-subcmd="build"
 
 echo "=== Done. Minimized code is in $CRATE_COPY/src/ ==="
