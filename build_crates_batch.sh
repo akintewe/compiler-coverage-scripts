@@ -12,8 +12,8 @@ OUTPUT_BASE=/var/tmp/jackh726_akintewe_codecoverage/$OUT_SUBFOLDER
 REGISTRY=~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f
 STAGE1=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1/bin/rustc
 LLVM_PROFDATA=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-profdata
-LLVM_COV=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-cov
-DRIVER=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1-rustc/aarch64-unknown-linux-gnu/release/deps/librustc_driver-10d726a819bd0aa8.so
+LLVM_COV=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-covDRIVER=$(ls -S /home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1-rustc/aarch64-unknown-linux-gnu/release/deps/librustc_driver-*.so | head -1)
+DRIVER=$(ls /home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1-rustc/aarch64-unknown-linux-gnu/release/deps/librustc_driver-*.so | sort -V | tail -1)
 WORKDIR=/home/gh-akintewe/crate-coverage/uncommon
 
 mkdir -p $WORKDIR
