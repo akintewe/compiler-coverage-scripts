@@ -40,8 +40,18 @@ for CRATE in $CRATES; do
 
     cd $CRATE_DIR
 
+    # build deps first without profiling (caches them)
+    RUSTC=$STAGE1 cargo build 2>&1 || true
+    RUSTC=$STAGE1 cargo test --no-run 2>&1 || true
+
+    # touch root to force recompile of root only
+    touch src/lib.rs
+
+    # collect coverage for root crate only
     LLVM_PROFILE_FILE=$OUT_DIR/profraws/default_%m_%p.profraw \
     RUSTC=$STAGE1 cargo build 2>&1 || true
+
+    touch src/lib.rs
 
     LLVM_PROFILE_FILE=$OUT_DIR/profraws/default_%m_%p.profraw \
     RUSTC=$STAGE1 cargo test --no-run 2>&1 || true
@@ -59,3 +69,4 @@ for CRATE in $CRATES; do
 
     echo "=== done: $CRATE ==="
 done
+
