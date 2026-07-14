@@ -14,7 +14,7 @@ STAGE1=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1/bin/rustc
 LLVM_PROFDATA=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-profdata
 LLVM_COV=/home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/ci-llvm/bin/llvm-cov
 DRIVER=$(ls -S /home/gh-akintewe/rust/build/aarch64-unknown-linux-gnu/stage1-rustc/aarch64-unknown-linux-gnu/release/deps/librustc_driver-*.so | head -1)
-WORKDIR=/home/gh-akintewe/crate-coverage/uncommon
+WORKDIR=/home/gh-akintewe/crate-coverage/$OUT_SUBFOLDER
 
 mkdir -p $WORKDIR
 
